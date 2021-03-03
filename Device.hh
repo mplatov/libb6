@@ -21,7 +21,7 @@
 
 #include <string>
 #include <vector>
-#include <libusb.h>
+#include "hidapi.h"
 #include <stdexcept>
 #include "Packet.hh"
 #include "Enum.hh"
@@ -80,8 +80,7 @@ namespace b6 {
     static bool isBatteryLi(BATTERY_TYPE type) { return type >= BATTERY_TYPE::LIPO && type <= BATTERY_TYPE::LIHV; };
     static bool isBatteryNi(BATTERY_TYPE type) { return type == BATTERY_TYPE::NIMH || type == BATTERY_TYPE::NICD; };
   private:
-    libusb_context *m_libusbCtx{};
-    libusb_device_handle *m_dev;
+    hid_device *m_dev;
     bool m_hadKernelDriver = false;
 
     int m_cellCount = 6;

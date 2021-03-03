@@ -20,25 +20,13 @@
 
 namespace b6 {
   Device::Device() {
-    int err = libusb_init(&m_libusbCtx);
+		int err = hid_init();
     if (err != 0) {
-      throw std::runtime_error("libusb err: " + std::to_string(err));
+      throw std::runtime_error("hid_init err: " + std::to_string(err));
     }
-    m_dev = libusb_open_device_with_vid_pid(m_libusbCtx, B6_VENDOR_ID, B6_PRODUCT_ID);
+    m_dev = hid_open(B6_VENDOR_ID, B6_PRODUCT_ID, NULL);
     if (m_dev == nullptr) {
       throw std::runtime_error("cannot find/open b6 device");
-    }
-
-    if (libusb_kernel_driver_active(m_dev, 0) == 1) {
-      m_hadKernelDriver = true;
-      err = libusb_detach_kernel_driver(m_dev, 0);
-      if (err != 0) {
-        throw std::runtime_error("cannot detach kernel driver, err: " + std::to_string(err));
-      }
-    }
-    err = libusb_claim_interface(m_dev, 0);
-    if (err != 0) {
-      throw std::runtime_error("cannot claim interface 0, err: " + std::to_string(err));
     }
 
     m_getDevInfo();
@@ -46,13 +34,9 @@ namespace b6 {
 
   Device::~Device() {
     if (m_dev != nullptr) {
-      libusb_release_interface(m_dev, 0);
-      if (m_hadKernelDriver) {
-        libusb_attach_kernel_driver(m_dev, 0);
-      }
-      libusb_close(m_dev);
+      hid_close(m_dev);
     }
-    libusb_exit(m_libusbCtx);
+    hid_exit();
   }
 
   SysInfo Device::getSysInfo() {
@@ -109,13 +93,13 @@ namespace b6 {
   Packet Device::m_read() {
     std::vector<uint8_t> buf(64);
     int len = 0;
-    libusb_interrupt_transfer(m_dev, 0x81, &buf[0], 64, &len, 200);
+		hid_read(m_dev, &buf[0], 64);
     return Packet(buf);
   }
 
   void Device::m_write(Packet packet) {
     int len = 0;
-    libusb_interrupt_transfer(m_dev, 0x01, packet.getBuffer(), packet.getSize(), &len, 200);
+		hid_write(m_dev, packet.getBuffer(), packet.getSize());
   }
 
   Packet Device::m_sendCommand(CMD cmd) {
